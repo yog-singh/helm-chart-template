@@ -1,0 +1,18 @@
+{{- if .Values.isDeployment -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "spring-demo.fullname" . }}
+  labels:
+    {{- include "spring-demo.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+      name: http
+      {{ if eq .Values.service.type "NodePort" }}nodePort: {{ .Values.service.nodePort }} {{ end }}
+  selector:
+    {{- include "spring-demo.selectorLabels" . | nindent 4 }}
+{{- end }}

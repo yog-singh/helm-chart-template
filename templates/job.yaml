@@ -1,0 +1,56 @@
+{{- if .Values.isJob -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "spring-demo.fullname" . }}-{{ randAlphaNum 5 | lower }}
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: script-volume
+          configMap:
+            name: job-script-{{ include "spring-demo.fullname" . }}
+        - name: dind-storage
+          persistentVolumeClaim:
+            claimName: dind-storage-{{ include "spring-demo.fullname" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            privileged: true
+          env:
+          {{- range .Values.env }}
+          - name: {{ .name }}
+            value: {{ .value }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          command: {{ .Values.image.command }}
+          volumeMounts:
+            - name: script-volume
+              mountPath: /var/lib/docker/scripts
+            - name: dind-storage
+              mountPath: /var/lib/docker
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
